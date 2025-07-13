@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AudioRedactionService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">redact-audio-pi</a> &gt; <a href="index.source.html" class="el_package">com.salesforce.service</a> &gt; <span class="el_source">AudioRedactionService.java</span></div><h1>AudioRedactionService.java</h1><pre class="source lang-java linenums">package com.salesforce.service;
+
+import com.salesforce.models.TimeInterval;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import javax.sound.sampled.*;
+import java.io.*;
+import java.util.List;
+
+<span class="nc" id="L11">@Slf4j</span>
+@Service
+<span class="nc" id="L13">public class AudioRedactionService {</span>
+
+    /**
+     * Redacts audio by replacing specified time intervals with beep sounds
+     *
+     * @param inputFile          Input audio file (WAV or MP3)
+     * @param outputFile         Output audio file
+     * @param redactionIntervals List of time intervals to redact (in seconds)
+     * @param beepFrequency      Frequency of the beep sound (in Hz)
+     * @param beepDuration       Duration of each beep (in seconds)
+     * @param beepVolume         Volume of the beep sound (0.0 to 1.0)
+     * @param soundType          Type of sound to generate (&quot;beep&quot;, &quot;chime&quot;, &quot;soft&quot;, &quot;gentle&quot;)
+     */
+    public void redactAudioWithBeep(String inputFile, String outputFile,
+                                    List&lt;TimeInterval&gt; redactionIntervals,
+                                    float beepFrequency, float beepDuration, float beepVolume, String soundType) {
+        try {
+            // Load the audio file
+<span class="nc" id="L31">            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(inputFile));</span>
+<span class="nc" id="L32">            AudioFormat format = audioInputStream.getFormat();</span>
+
+<span class="nc" id="L34">            log.info(&quot;Processing audio file: {} with format: {}&quot;, inputFile, format);</span>
+
+            // Convert to PCM if needed
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            if (format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED) {</span>
+<span class="nc" id="L38">                AudioFormat targetFormat = new AudioFormat(</span>
+                        AudioFormat.Encoding.PCM_SIGNED,
+<span class="nc" id="L40">                        format.getSampleRate(),</span>
+                        16,
+<span class="nc" id="L42">                        format.getChannels(),</span>
+<span class="nc" id="L43">                        format.getChannels() * 2,</span>
+<span class="nc" id="L44">                        format.getSampleRate(),</span>
+                        false
+                );
+<span class="nc" id="L47">                audioInputStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);</span>
+<span class="nc" id="L48">                format = targetFormat;</span>
+            }
+
+            // Read all audio data
+<span class="nc" id="L52">            byte[] audioData = readAudioData(audioInputStream);</span>
+
+            // Generate replacement sound based on type
+<span class="nc" id="L55">            byte[] replacementData = generateReplacementSound(format, beepFrequency, beepDuration, beepVolume, soundType);</span>
+
+            // Apply redactions
+<span class="nc" id="L58">            byte[] redactedData = applyRedactions(audioData, format, redactionIntervals, replacementData);</span>
+
+            // Write output file
+<span class="nc" id="L61">            writeAudioFile(redactedData, format, outputFile);</span>
+
+<span class="nc" id="L63">            log.info(&quot;Audio redaction completed. Output saved to: {}&quot;, outputFile);</span>
+
+<span class="nc" id="L65">        } catch (Exception e) {</span>
+<span class="nc" id="L66">            log.error(&quot;Error during audio redaction&quot;, e);</span>
+<span class="nc" id="L67">            throw new RuntimeException(&quot;Failed to redact audio&quot;, e);</span>
+<span class="nc" id="L68">        }</span>
+<span class="nc" id="L69">    }</span>
+
+    /**
+     * Redacts audio by replacing specified time intervals with silence
+     *
+     * @param inputFile          Input audio file (WAV or MP3)
+     * @param outputFile         Output audio file
+     * @param redactionIntervals List of time intervals to redact (in seconds)
+     */
+    public void redactAudioWithSilence(String inputFile, String outputFile,
+                                       List&lt;TimeInterval&gt; redactionIntervals) {
+        try {
+            // Load the audio file
+<span class="nc" id="L82">            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(inputFile));</span>
+<span class="nc" id="L83">            AudioFormat format = audioInputStream.getFormat();</span>
+
+<span class="nc" id="L85">            log.info(&quot;Processing audio file: {} with format: {}&quot;, inputFile, format);</span>
+
+            // Convert to PCM if needed
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if (format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED) {</span>
+<span class="nc" id="L89">                AudioFormat targetFormat = new AudioFormat(</span>
+                        AudioFormat.Encoding.PCM_SIGNED,
+<span class="nc" id="L91">                        format.getSampleRate(),</span>
+                        16,
+<span class="nc" id="L93">                        format.getChannels(),</span>
+<span class="nc" id="L94">                        format.getChannels() * 2,</span>
+<span class="nc" id="L95">                        format.getSampleRate(),</span>
+                        false
+                );
+<span class="nc" id="L98">                audioInputStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);</span>
+<span class="nc" id="L99">                format = targetFormat;</span>
+            }
+
+            // Read all audio data
+<span class="nc" id="L103">            byte[] audioData = readAudioData(audioInputStream);</span>
+
+            // Apply redactions with silence
+<span class="nc" id="L106">            byte[] redactedData = applyRedactionsWithSilence(audioData, format, redactionIntervals);</span>
+
+            // Write output file
+<span class="nc" id="L109">            writeAudioFile(redactedData, format, outputFile);</span>
+
+<span class="nc" id="L111">            log.info(&quot;Audio redaction with silence completed. Output saved to: {}&quot;, outputFile);</span>
+
+<span class="nc" id="L113">        } catch (Exception e) {</span>
+<span class="nc" id="L114">            log.error(&quot;Error during audio redaction with silence&quot;, e);</span>
+<span class="nc" id="L115">            throw new RuntimeException(&quot;Failed to redact audio with silence&quot;, e);</span>
+<span class="nc" id="L116">        }</span>
+<span class="nc" id="L117">    }</span>
+
+    /**
+     * Redacts audio with specified replacement method (beep or silence)
+     *
+     * @param inputFile          Input audio file (WAV or MP3)
+     * @param outputFile         Output audio file
+     * @param redactionIntervals List of time intervals to redact (in seconds)
+     * @param replacementMethod  &quot;beep&quot; or &quot;silence&quot;
+     * @param beepFrequency      Frequency of the beep sound (in Hz) - only used if replacementMethod is &quot;beep&quot;
+     * @param beepDuration       Duration of each beep (in seconds) - only used if replacementMethod is &quot;beep&quot;
+     * @param beepVolume         Volume of the beep sound (0.0 to 1.0) - only used if replacementMethod is &quot;beep&quot;
+     * @param soundType          Type of sound to generate (&quot;beep&quot;, &quot;chime&quot;, &quot;soft&quot;, &quot;gentle&quot;) - only used if replacementMethod is &quot;beep&quot;
+     */
+    public void redactAudio(String inputFile, String outputFile,
+                            List&lt;TimeInterval&gt; redactionIntervals,
+                            String replacementMethod,
+                            float beepFrequency, float beepDuration, float beepVolume, String soundType) {
+<span class="nc" id="L135">        log.info(&quot;Redacting audio with method: {}, frequency: {} Hz, duration: {} seconds, volume: {}, sound type: {}&quot;, </span>
+<span class="nc" id="L136">                replacementMethod, beepFrequency, beepDuration, beepVolume, soundType);</span>
+<span class="nc" id="L137">        log.info(&quot;Redaction intervals: {}&quot;, redactionIntervals);</span>
+        
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (&quot;silence&quot;.equalsIgnoreCase(replacementMethod)) {</span>
+<span class="nc" id="L140">            redactAudioWithSilence(inputFile, outputFile, redactionIntervals);</span>
+        } else {
+<span class="nc" id="L142">            redactAudioWithBeep(inputFile, outputFile, redactionIntervals, beepFrequency, beepDuration, beepVolume, soundType);</span>
+        }
+<span class="nc" id="L144">    }</span>
+
+    private byte[] readAudioData(AudioInputStream audioInputStream) throws IOException {
+<span class="nc" id="L147">        ByteArrayOutputStream baos = new ByteArrayOutputStream();</span>
+<span class="nc" id="L148">        byte[] buffer = new byte[4096];</span>
+        int bytesRead;
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        while ((bytesRead = audioInputStream.read(buffer)) != -1) {</span>
+<span class="nc" id="L152">            baos.write(buffer, 0, bytesRead);</span>
+        }
+
+<span class="nc" id="L155">        return baos.toByteArray();</span>
+    }
+
+    private byte[] generateBeep(AudioFormat format, float frequency, float duration, float volume) {
+<span class="nc" id="L159">        log.info(&quot;Generating beep with frequency: {} Hz, duration: {} seconds, volume: {}&quot;, frequency, duration, volume);</span>
+        
+<span class="nc" id="L161">        int sampleRate = (int) format.getSampleRate();</span>
+<span class="nc" id="L162">        int channels = format.getChannels();</span>
+<span class="nc" id="L163">        int bitsPerSample = format.getSampleSizeInBits();</span>
+<span class="nc" id="L164">        int bytesPerSample = bitsPerSample / 8;</span>
+
+<span class="nc" id="L166">        int numSamples = (int) (sampleRate * duration);</span>
+<span class="nc" id="L167">        byte[] beepData = new byte[numSamples * channels * bytesPerSample];</span>
+
+        // Log a few sample values for debugging
+<span class="nc" id="L170">        int debugSamples = Math.min(10, numSamples);</span>
+        
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        for (int i = 0; i &lt; numSamples; i++) {</span>
+<span class="nc" id="L173">            double time = (double) i / sampleRate;</span>
+<span class="nc" id="L174">            double amplitude = Math.sin(2 * Math.PI * frequency * time);</span>
+
+            // Convert to 16-bit PCM with configurable volume
+<span class="nc" id="L177">            short sample = (short) (amplitude * 32767 * volume);</span>
+            
+            // Log first few samples for debugging
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (i &lt; debugSamples) {</span>
+<span class="nc" id="L181">                log.info(&quot;Sample {}: amplitude={}, volume={}, final_sample={}&quot;, i, amplitude, volume, sample);</span>
+            }
+
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            for (int ch = 0; ch &lt; channels; ch++) {</span>
+<span class="nc" id="L185">                int index = (i * channels + ch) * bytesPerSample;</span>
+<span class="nc" id="L186">                beepData[index] = (byte) (sample &amp; 0xFF);</span>
+<span class="nc" id="L187">                beepData[index + 1] = (byte) ((sample &gt;&gt; 8) &amp; 0xFF);</span>
+            }
+        }
+
+<span class="nc" id="L191">        log.info(&quot;Generated beep data with {} samples, {} channels, {} bytes per sample&quot;, numSamples, channels, bytesPerSample);</span>
+<span class="nc" id="L192">        return beepData;</span>
+    }
+
+    private byte[] applyRedactions(byte[] audioData, AudioFormat format,
+                                   List&lt;TimeInterval&gt; redactionIntervals, byte[] beepData) {
+<span class="nc" id="L197">        log.info(&quot;Applying redactions to {} intervals with beep data of {} bytes&quot;, redactionIntervals.size(), beepData.length);</span>
+        
+<span class="nc" id="L199">        int sampleRate = (int) format.getSampleRate();</span>
+<span class="nc" id="L200">        int channels = format.getChannels();</span>
+<span class="nc" id="L201">        int bytesPerSample = format.getSampleSizeInBits() / 8;</span>
+<span class="nc" id="L202">        int bytesPerFrame = channels * bytesPerSample;</span>
+
+<span class="nc" id="L204">        byte[] result = audioData.clone();</span>
+
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        for (TimeInterval interval : redactionIntervals) {</span>
+<span class="nc" id="L207">            int startSample = (int) (interval.getStartTime() * sampleRate);</span>
+<span class="nc" id="L208">            int endSample = (int) (interval.getEndTime() * sampleRate);</span>
+
+<span class="nc" id="L210">            int startByte = startSample * bytesPerFrame;</span>
+<span class="nc" id="L211">            int endByte = endSample * bytesPerFrame;</span>
+
+<span class="nc" id="L213">            log.info(&quot;Redacting interval: {} to {} seconds (samples {} to {}, bytes {} to {})&quot;, </span>
+<span class="nc" id="L214">                    interval.getStartTime(), interval.getEndTime(), startSample, endSample, startByte, endByte);</span>
+
+            // Ensure we don't go beyond the audio data
+<span class="nc bnc" id="L217" title="All 2 branches missed.">            if (endByte &gt; result.length) {</span>
+<span class="nc" id="L218">                endByte = result.length;</span>
+<span class="nc" id="L219">                log.warn(&quot;Adjusted end byte to {} to stay within audio data bounds&quot;, endByte);</span>
+            }
+
+            // Replace the interval with beep sounds
+<span class="nc" id="L223">            int intervalLength = endByte - startByte;</span>
+<span class="nc" id="L224">            int beepLength = beepData.length;</span>
+
+<span class="nc" id="L226">            log.info(&quot;Replacing {} bytes with beep pattern of {} bytes&quot;, intervalLength, beepLength);</span>
+
+<span class="nc" id="L228">            int beepIndex = 0;</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">            for (int i = startByte; i &lt; endByte; i++) {</span>
+<span class="nc" id="L230">                result[i] = beepData[beepIndex % beepLength];</span>
+<span class="nc" id="L231">                beepIndex++;</span>
+            }
+<span class="nc" id="L233">        }</span>
+
+<span class="nc" id="L235">        return result;</span>
+    }
+
+    private byte[] applyRedactionsWithSilence(byte[] audioData, AudioFormat format,
+                                              List&lt;TimeInterval&gt; redactionIntervals) {
+<span class="nc" id="L240">        int sampleRate = (int) format.getSampleRate();</span>
+<span class="nc" id="L241">        int channels = format.getChannels();</span>
+<span class="nc" id="L242">        int bytesPerSample = format.getSampleSizeInBits() / 8;</span>
+<span class="nc" id="L243">        int bytesPerFrame = channels * bytesPerSample;</span>
+
+<span class="nc" id="L245">        byte[] result = audioData.clone();</span>
+
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        for (TimeInterval interval : redactionIntervals) {</span>
+<span class="nc" id="L248">            int startSample = (int) (interval.getStartTime() * sampleRate);</span>
+<span class="nc" id="L249">            int endSample = (int) (interval.getEndTime() * sampleRate);</span>
+
+<span class="nc" id="L251">            int startByte = startSample * bytesPerFrame;</span>
+<span class="nc" id="L252">            int endByte = endSample * bytesPerFrame;</span>
+
+            // Ensure we don't go beyond the audio data
+<span class="nc bnc" id="L255" title="All 2 branches missed.">            if (endByte &gt; result.length) {</span>
+<span class="nc" id="L256">                endByte = result.length;</span>
+            }
+
+            // Replace the interval with silence (zeros)
+<span class="nc bnc" id="L260" title="All 2 branches missed.">            for (int i = startByte; i &lt; endByte; i++) {</span>
+<span class="nc" id="L261">                result[i] = 0;</span>
+            }
+<span class="nc" id="L263">        }</span>
+
+<span class="nc" id="L265">        return result;</span>
+    }
+
+    private void writeAudioFile(byte[] audioData, AudioFormat format, String outputFile) throws IOException {
+<span class="nc" id="L269">        ByteArrayInputStream bais = new ByteArrayInputStream(audioData);</span>
+<span class="nc" id="L270">        AudioInputStream ais = new AudioInputStream(bais, format, audioData.length / format.getFrameSize());</span>
+
+<span class="nc" id="L272">        AudioSystem.write(ais, AudioFileFormat.Type.WAVE, new File(outputFile));</span>
+<span class="nc" id="L273">    }</span>
+
+    /**
+     * Generates replacement sound based on the specified type
+     */
+    private byte[] generateReplacementSound(AudioFormat format, float frequency, float duration, float volume, String soundType) {
+<span class="nc" id="L279">        log.info(&quot;Generating {} sound with frequency: {} Hz, duration: {} seconds, volume: {}&quot;, soundType, frequency, duration, volume);</span>
+        
+<span class="nc bnc" id="L281" title="All 4 branches missed.">        switch (soundType.toLowerCase()) {</span>
+            case &quot;chime&quot;:
+<span class="nc" id="L283">                return generateChimeSound(format, duration, volume);</span>
+            case &quot;soft&quot;:
+<span class="nc" id="L285">                return generateSoftTone(format, frequency, duration, volume);</span>
+            case &quot;gentle&quot;:
+<span class="nc" id="L287">                return generateGentleTone(format, frequency, duration, volume);</span>
+            case &quot;beep&quot;:
+            default:
+<span class="nc" id="L290">                return generateBeep(format, frequency, duration, volume);</span>
+        }
+    }
+
+    /**
+     * Generates a soothing chime-like sound
+     */
+    private byte[] generateChimeSound(AudioFormat format, float duration, float volume) {
+<span class="nc" id="L298">        int sampleRate = (int) format.getSampleRate();</span>
+<span class="nc" id="L299">        int channels = format.getChannels();</span>
+<span class="nc" id="L300">        int bitsPerSample = format.getSampleSizeInBits();</span>
+<span class="nc" id="L301">        int bytesPerSample = bitsPerSample / 8;</span>
+
+<span class="nc" id="L303">        int numSamples = (int) (sampleRate * duration);</span>
+<span class="nc" id="L304">        byte[] chimeData = new byte[numSamples * channels * bytesPerSample];</span>
+
+        // Create a chime with multiple harmonics for a more musical sound
+<span class="nc" id="L307">        double[] frequencies = {800.0, 1200.0, 1600.0}; // Harmonic series</span>
+<span class="nc" id="L308">        double[] amplitudes = {1.0, 0.6, 0.3}; // Decreasing amplitudes for harmonics</span>
+
+<span class="nc bnc" id="L310" title="All 2 branches missed.">        for (int i = 0; i &lt; numSamples; i++) {</span>
+<span class="nc" id="L311">            double time = (double) i / sampleRate;</span>
+<span class="nc" id="L312">            double amplitude = 0.0;</span>
+
+            // Combine multiple frequencies for rich tone
+<span class="nc bnc" id="L315" title="All 2 branches missed.">            for (int j = 0; j &lt; frequencies.length; j++) {</span>
+<span class="nc" id="L316">                amplitude += amplitudes[j] * Math.sin(2 * Math.PI * frequencies[j] * time);</span>
+            }
+
+            // Apply exponential decay for natural chime sound
+<span class="nc" id="L320">            double decay = Math.exp(-time * 3.0); // Faster decay for chime effect</span>
+<span class="nc" id="L321">            amplitude *= decay;</span>
+
+            // Apply fade-in and fade-out
+<span class="nc" id="L324">            double fadeIn = Math.min(1.0, time / 0.05); // 50ms fade-in</span>
+<span class="nc" id="L325">            double fadeOut = Math.min(1.0, (duration - time) / 0.05); // 50ms fade-out</span>
+<span class="nc" id="L326">            amplitude *= fadeIn * fadeOut;</span>
+
+            // Convert to 16-bit PCM with configurable volume
+<span class="nc" id="L329">            short sample = (short) (amplitude * 32767 * volume * 0.3); // Reduced overall volume for chime</span>
+
+<span class="nc bnc" id="L331" title="All 2 branches missed.">            for (int ch = 0; ch &lt; channels; ch++) {</span>
+<span class="nc" id="L332">                int index = (i * channels + ch) * bytesPerSample;</span>
+<span class="nc" id="L333">                chimeData[index] = (byte) (sample &amp; 0xFF);</span>
+<span class="nc" id="L334">                chimeData[index + 1] = (byte) ((sample &gt;&gt; 8) &amp; 0xFF);</span>
+            }
+        }
+
+<span class="nc" id="L338">        log.info(&quot;Generated chime sound with {} samples&quot;, numSamples);</span>
+<span class="nc" id="L339">        return chimeData;</span>
+    }
+
+    /**
+     * Generates a soft tone with gentle fade effects
+     */
+    private byte[] generateSoftTone(AudioFormat format, float frequency, float duration, float volume) {
+<span class="nc" id="L346">        int sampleRate = (int) format.getSampleRate();</span>
+<span class="nc" id="L347">        int channels = format.getChannels();</span>
+<span class="nc" id="L348">        int bitsPerSample = format.getSampleSizeInBits();</span>
+<span class="nc" id="L349">        int bytesPerSample = bitsPerSample / 8;</span>
+
+<span class="nc" id="L351">        int numSamples = (int) (sampleRate * duration);</span>
+<span class="nc" id="L352">        byte[] softData = new byte[numSamples * channels * bytesPerSample];</span>
+
+<span class="nc bnc" id="L354" title="All 2 branches missed.">        for (int i = 0; i &lt; numSamples; i++) {</span>
+<span class="nc" id="L355">            double time = (double) i / sampleRate;</span>
+            
+            // Use a lower frequency for softer sound
+<span class="nc" id="L358">            double baseFreq = frequency * 0.7; // 30% lower frequency</span>
+<span class="nc" id="L359">            double amplitude = Math.sin(2 * Math.PI * baseFreq * time);</span>
+
+            // Add a subtle second harmonic for warmth
+<span class="nc" id="L362">            amplitude += 0.2 * Math.sin(2 * Math.PI * baseFreq * 2 * time);</span>
+
+            // Apply gentle fade-in and fade-out
+<span class="nc" id="L365">            double fadeIn = Math.min(1.0, time / 0.1); // 100ms fade-in</span>
+<span class="nc" id="L366">            double fadeOut = Math.min(1.0, (duration - time) / 0.1); // 100ms fade-out</span>
+<span class="nc" id="L367">            amplitude *= fadeIn * fadeOut;</span>
+
+            // Apply soft envelope
+<span class="nc" id="L370">            double envelope = Math.sin(Math.PI * time / duration);</span>
+<span class="nc" id="L371">            amplitude *= envelope;</span>
+
+            // Convert to 16-bit PCM with reduced volume
+<span class="nc" id="L374">            short sample = (short) (amplitude * 32767 * volume * 0.4); // 40% of original volume</span>
+
+<span class="nc bnc" id="L376" title="All 2 branches missed.">            for (int ch = 0; ch &lt; channels; ch++) {</span>
+<span class="nc" id="L377">                int index = (i * channels + ch) * bytesPerSample;</span>
+<span class="nc" id="L378">                softData[index] = (byte) (sample &amp; 0xFF);</span>
+<span class="nc" id="L379">                softData[index + 1] = (byte) ((sample &gt;&gt; 8) &amp; 0xFF);</span>
+            }
+        }
+
+<span class="nc" id="L383">        log.info(&quot;Generated soft tone with {} samples&quot;, numSamples);</span>
+<span class="nc" id="L384">        return softData;</span>
+    }
+
+    /**
+     * Generates a very gentle, barely audible tone
+     */
+    private byte[] generateGentleTone(AudioFormat format, float frequency, float duration, float volume) {
+<span class="nc" id="L391">        int sampleRate = (int) format.getSampleRate();</span>
+<span class="nc" id="L392">        int channels = format.getChannels();</span>
+<span class="nc" id="L393">        int bitsPerSample = format.getSampleSizeInBits();</span>
+<span class="nc" id="L394">        int bytesPerSample = bitsPerSample / 8;</span>
+
+<span class="nc" id="L396">        int numSamples = (int) (sampleRate * duration);</span>
+<span class="nc" id="L397">        byte[] gentleData = new byte[numSamples * channels * bytesPerSample];</span>
+
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        for (int i = 0; i &lt; numSamples; i++) {</span>
+<span class="nc" id="L400">            double time = (double) i / sampleRate;</span>
+            
+            // Use very low frequency for gentle sound
+<span class="nc" id="L403">            double baseFreq = frequency * 0.5; // 50% lower frequency</span>
+<span class="nc" id="L404">            double amplitude = Math.sin(2 * Math.PI * baseFreq * time);</span>
+
+            // Very long fade-in and fade-out for maximum gentleness
+<span class="nc" id="L407">            double fadeIn = Math.min(1.0, time / 0.2); // 200ms fade-in</span>
+<span class="nc" id="L408">            double fadeOut = Math.min(1.0, (duration - time) / 0.2); // 200ms fade-out</span>
+<span class="nc" id="L409">            amplitude *= fadeIn * fadeOut;</span>
+
+            // Apply very gentle envelope
+<span class="nc" id="L412">            double envelope = Math.sin(Math.PI * time / duration);</span>
+<span class="nc" id="L413">            amplitude *= envelope * envelope; // Square for extra smoothness</span>
+
+            // Convert to 16-bit PCM with very low volume
+<span class="nc" id="L416">            short sample = (short) (amplitude * 32767 * volume * 0.15); // Only 15% of original volume</span>
+
+<span class="nc bnc" id="L418" title="All 2 branches missed.">            for (int ch = 0; ch &lt; channels; ch++) {</span>
+<span class="nc" id="L419">                int index = (i * channels + ch) * bytesPerSample;</span>
+<span class="nc" id="L420">                gentleData[index] = (byte) (sample &amp; 0xFF);</span>
+<span class="nc" id="L421">                gentleData[index + 1] = (byte) ((sample &gt;&gt; 8) &amp; 0xFF);</span>
+            }
+        }
+
+<span class="nc" id="L425">        log.info(&quot;Generated gentle tone with {} samples&quot;, numSamples);</span>
+<span class="nc" id="L426">        return gentleData;</span>
+    }
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

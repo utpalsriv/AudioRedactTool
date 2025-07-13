@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AudioRedactionController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">redact-audio-pi</a> &gt; <a href="index.source.html" class="el_package">com.salesforce.controller</a> &gt; <span class="el_source">AudioRedactionController.java</span></div><h1>AudioRedactionController.java</h1><pre class="source lang-java linenums">package com.salesforce.controller;
+
+import com.salesforce.models.TimeInterval;
+import com.salesforce.models.TranscriptionResult;
+import com.salesforce.service.TranscribeWithPII;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import com.salesforce.service.AudioRedactionService;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+<span class="nc" id="L27">@Slf4j</span>
+@RestController
+@RequestMapping(&quot;/api/audio&quot;)
+@RequiredArgsConstructor
+public class AudioRedactionController {
+
+    private final AudioRedactionService audioRedactionService;
+    private final TranscribeWithPII transcribeWithPIIService;
+    private final String uploadDir = &quot;uploads&quot;;
+    private final String outputDir = &quot;outputs&quot;;
+
+
+    @PostMapping(&quot;/redact&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; redactAudio(
+            @RequestParam(&quot;file&quot;) MultipartFile file,
+            @RequestParam(value = &quot;replacementMethod&quot;, defaultValue = &quot;beep&quot;) String replacementMethod,
+            @RequestParam(value = &quot;beepFrequency&quot;, required = false) Float beepFrequency,
+            @RequestParam(value = &quot;beepDuration&quot;, required = false) Float beepDuration,
+            @RequestParam(value = &quot;beepVolume&quot;, required = false) Float beepVolume,
+            @RequestParam(value = &quot;soundType&quot;, defaultValue = &quot;beep&quot;) String soundType) {
+
+        try {
+<span class="nc" id="L49">            log.info(&quot;Received redact request - method: {}, frequency: {}, duration: {}, volume: {}, sound type: {}&quot;, </span>
+                    replacementMethod, beepFrequency, beepDuration, beepVolume, soundType);
+            
+            // Create directories if they don't exist
+<span class="nc" id="L53">            createDirectories();</span>
+
+            // Generate unique filename
+<span class="nc" id="L56">            String originalFilename = file.getOriginalFilename();</span>
+<span class="nc" id="L57">            String fileExtension = getFileExtension(originalFilename);</span>
+<span class="nc" id="L58">            String uniqueId = UUID.randomUUID().toString();</span>
+<span class="nc" id="L59">            String inputFileName = uniqueId + &quot;_input&quot; + fileExtension;</span>
+<span class="nc" id="L60">            String outputFileName = uniqueId + &quot;_redacted.wav&quot;;</span>
+
+            // Save uploaded file using absolute paths
+<span class="nc" id="L63">            Path inputPath = getAbsolutePath(uploadDir).resolve(inputFileName);</span>
+<span class="nc" id="L64">            file.transferTo(inputPath.toFile());</span>
+
+<span class="nc" id="L66">            TranscriptionResult transcriptionResult = </span>
+<span class="nc" id="L67">                transcribeWithPIIService.transcribeAndDetectPII(inputPath.toAbsolutePath().toString());</span>
+
+            // Process audio
+<span class="nc" id="L70">            String inputFile = inputPath.toString();</span>
+<span class="nc" id="L71">            String outputFile = getAbsolutePath(outputDir).resolve(outputFileName).toString();</span>
+
+            // Use default values for beep parameters if not provided
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            float frequency = (beepFrequency != null) ? beepFrequency : 1000.0f;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">            float duration = (beepDuration != null) ? beepDuration : 0.5f;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            float volume = (beepVolume != null) ? beepVolume : 0.3f;</span>
+
+<span class="nc" id="L78">            log.info(&quot;Processing with - frequency: {}, duration: {}, volume: {}, sound type: {}&quot;, frequency, duration, volume, soundType);</span>
+
+<span class="nc" id="L80">            audioRedactionService.redactAudio(inputFile, outputFile, transcriptionResult.getPiiIntervals(), replacementMethod, frequency, duration, volume, soundType);</span>
+
+            // Clean up input file
+<span class="nc" id="L83">            Files.deleteIfExists(inputPath);</span>
+
+            // Prepare response
+<span class="nc" id="L86">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L87">            response.put(&quot;fileId&quot;, uniqueId);</span>
+<span class="nc" id="L88">            response.put(&quot;originalTranscription&quot;, transcriptionResult.getOriginalTranscription());</span>
+<span class="nc" id="L89">            response.put(&quot;redactedTranscription&quot;, transcriptionResult.getRedactedTranscription());</span>
+<span class="nc" id="L90">            response.put(&quot;piiIntervals&quot;, transcriptionResult.getPiiIntervals());</span>
+<span class="nc" id="L91">            response.put(&quot;piiEntities&quot;, transcriptionResult.getPiiEntities());</span>
+<span class="nc" id="L92">            response.put(&quot;message&quot;, &quot;Audio redacted successfully&quot;);</span>
+
+<span class="nc" id="L94">            return ResponseEntity.ok(response);</span>
+
+<span class="nc" id="L96">        } catch (Exception e) {</span>
+<span class="nc" id="L97">            log.error(&quot;Error processing audio redaction request&quot;, e);</span>
+<span class="nc" id="L98">            Map&lt;String, Object&gt; errorResponse = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L99">            errorResponse.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L100">            return ResponseEntity.badRequest().body(errorResponse);</span>
+        }
+    }
+
+    @GetMapping(&quot;/download/{fileId}&quot;)
+    public ResponseEntity&lt;Resource&gt; downloadRedactedAudio(@PathVariable String fileId) {
+        try {
+<span class="nc" id="L107">            Path filePath = getAbsolutePath(outputDir).resolve(fileId + &quot;_redacted.wav&quot;);</span>
+<span class="nc" id="L108">            Resource resource = new UrlResource(filePath.toUri());</span>
+
+<span class="nc bnc" id="L110" title="All 4 branches missed.">            if (resource.exists() &amp;&amp; resource.isReadable()) {</span>
+<span class="nc" id="L111">                return ResponseEntity.ok()</span>
+<span class="nc" id="L112">                        .header(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=\&quot;&quot; + resource.getFilename() + &quot;\&quot;&quot;)</span>
+<span class="nc" id="L113">                        .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
+<span class="nc" id="L114">                        .body(resource);</span>
+            } else {
+<span class="nc" id="L116">                return ResponseEntity.notFound().build();</span>
+            }
+<span class="nc" id="L118">        } catch (Exception e) {</span>
+<span class="nc" id="L119">            log.error(&quot;Error downloading file&quot;, e);</span>
+<span class="nc" id="L120">            return ResponseEntity.badRequest().build();</span>
+        }
+    }
+
+    @DeleteMapping(&quot;/cleanup/{fileId}&quot;)
+    public ResponseEntity&lt;String&gt; cleanupFile(@PathVariable String fileId) {
+        try {
+<span class="nc" id="L127">            Path filePath = getAbsolutePath(outputDir).resolve(fileId + &quot;_redacted.wav&quot;);</span>
+<span class="nc" id="L128">            Files.deleteIfExists(filePath);</span>
+<span class="nc" id="L129">            return ResponseEntity.ok(&quot;File cleaned up successfully&quot;);</span>
+<span class="nc" id="L130">        } catch (Exception e) {</span>
+<span class="nc" id="L131">            log.error(&quot;Error cleaning up file&quot;, e);</span>
+<span class="nc" id="L132">            return ResponseEntity.badRequest().body(&quot;Error: &quot; + e.getMessage());</span>
+        }
+    }
+
+    private void createDirectories() throws IOException {
+<span class="nc" id="L137">        Files.createDirectories(getAbsolutePath(uploadDir));</span>
+<span class="nc" id="L138">        Files.createDirectories(getAbsolutePath(outputDir));</span>
+<span class="nc" id="L139">    }</span>
+
+    private Path getAbsolutePath(String relativePath) {
+        // Get the current working directory and resolve the relative path
+<span class="nc" id="L143">        return Paths.get(System.getProperty(&quot;user.dir&quot;)).resolve(relativePath);</span>
+    }
+
+    private String getFileExtension(String filename) {
+<span class="nc bnc" id="L147" title="All 4 branches missed.">        if (filename == null || filename.lastIndexOf(&quot;.&quot;) == -1) {</span>
+<span class="nc" id="L148">            return &quot;.wav&quot;;</span>
+        }
+<span class="nc" id="L150">        return filename.substring(filename.lastIndexOf(&quot;.&quot;));</span>
+    }
+
+    private List&lt;TimeInterval&gt; parseIntervals(String intervalsJson) {
+<span class="nc" id="L154">        log.info(&quot;Parsing intervals from: '{}'&quot;, intervalsJson);</span>
+        
+        // Simple parsing: &quot;start1,end1;start2,end2&quot;
+<span class="nc" id="L157">        List&lt;TimeInterval&gt; intervals = java.util.Arrays.stream(intervalsJson.split(&quot;;&quot;))</span>
+<span class="nc" id="L158">                .map(interval -&gt; {</span>
+<span class="nc" id="L159">                    String[] parts = interval.split(&quot;,&quot;);</span>
+<span class="nc" id="L160">                    double start = Double.parseDouble(parts[0].trim());</span>
+<span class="nc" id="L161">                    double end = Double.parseDouble(parts[1].trim());</span>
+<span class="nc" id="L162">                    log.info(&quot;Parsed interval: {} to {} seconds&quot;, start, end);</span>
+<span class="nc" id="L163">                    return new TimeInterval(start, end);</span>
+<span class="nc" id="L164">                }).collect(Collectors.toList());</span>
+        
+<span class="nc" id="L166">        log.info(&quot;Total intervals parsed: {}&quot;, intervals.size());</span>
+<span class="nc" id="L167">        return intervals;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

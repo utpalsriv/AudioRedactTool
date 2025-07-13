@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PIIEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">redact-audio-pi</a> &gt; <a href="index.source.html" class="el_package">com.salesforce.models</a> &gt; <span class="el_source">PIIEntity.java</span></div><h1>PIIEntity.java</h1><pre class="source lang-java linenums">package com.salesforce.models;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Objects;
+
+/**
+ * Represents a Personally Identifiable Information entity detected in the transcript.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PIIEntity {
+    private String type;
+    private double startTime;
+    private double endTime;
+    private String content;
+    private double confidence;
+
+    public String getType() {
+<span class="nc" id="L23">        return Objects.requireNonNull(type, &quot;PII type cannot be null&quot;);</span>
+    }
+
+    public String getContent() {
+<span class="nc bnc" id="L27" title="All 2 branches missed.">        return content != null ? content : &quot;&quot;;</span>
+    }
+
+    /**
+     * Gets the duration of this PII entity in seconds.
+     * @return duration in seconds
+     */
+    public double getDuration() {
+<span class="nc" id="L35">        return endTime - startTime;</span>
+    }
+
+    /**
+     * Checks if this entity has high confidence (above 0.8).
+     * @return true if confidence is high
+     */
+    public boolean isHighConfidence() {
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        return confidence &gt; 0.8;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L48">        return &quot;PIIEntity{&quot; +</span>
+<span class="nc" id="L49">                &quot;type='&quot; + getType() + '\'' +</span>
+                &quot;, startTime=&quot; + startTime +
+                &quot;, endTime=&quot; + endTime +
+<span class="nc" id="L52">                &quot;, content='&quot; + getContent() + '\'' +</span>
+                &quot;, confidence=&quot; + confidence +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (this == obj) return true;</span>
+<span class="nc bnc" id="L60" title="All 4 branches missed.">        if (obj == null || getClass() != obj.getClass()) return false;</span>
+<span class="nc" id="L61">        PIIEntity piiEntity = (PIIEntity) obj;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        return Double.compare(piiEntity.startTime, startTime) == 0 &amp;&amp;</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">               Double.compare(piiEntity.endTime, endTime) == 0 &amp;&amp;</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">               Double.compare(piiEntity.confidence, confidence) == 0 &amp;&amp;</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">               Objects.equals(getType(), piiEntity.getType()) &amp;&amp;</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">               Objects.equals(getContent(), piiEntity.getContent());</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L71">        return Objects.hash(getType(), startTime, endTime, getContent(), confidence);</span>
+    }
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

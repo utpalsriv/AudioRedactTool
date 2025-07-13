@@ -1,0 +1,14 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+redact-audio-pi,com.salesforce.controller,AudioRedactionController,355,0,14,0,68,0,16,0,9,0
+redact-audio-pi,com.salesforce.service,AudioRedactionService,1169,0,44,0,196,0,37,0,14,0
+redact-audio-pi,com.salesforce.service,TranscribeWithPII,568,0,46,0,129,0,29,0,6,0
+redact-audio-pi,com.salesforce.models,Transcript,24,0,6,0,3,0,6,0,3,0
+redact-audio-pi,com.salesforce.models,TimeInterval,29,0,0,0,3,0,2,0,2,0
+redact-audio-pi,com.salesforce.models,Alternative,39,0,8,0,7,0,9,0,5,0
+redact-audio-pi,com.salesforce.models,PIIEntity,124,0,20,0,16,0,17,0,7,0
+redact-audio-pi,com.salesforce.models,TranscriptionResult,66,0,10,0,18,0,8,0,3,0
+redact-audio-pi,com.salesforce.models,Result,66,0,6,0,13,0,10,0,7,0
+redact-audio-pi,com.salesforce.models,TranscriptEvent,57,0,8,0,13,0,10,0,6,0
+redact-audio-pi,com.salesforce,App,12,0,0,0,4,0,3,0,3,0
+redact-audio-pi,com.salesforce.utils,StreamingBenchmarkUtils,57,0,2,0,14,0,5,0,4,0
+redact-audio-pi,com.salesforce.utils,TranscriptionWebSocketClient,84,0,6,0,27,0,11,0,8,0

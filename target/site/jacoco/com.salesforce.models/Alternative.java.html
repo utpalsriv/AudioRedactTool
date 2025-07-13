@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Alternative.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">redact-audio-pi</a> &gt; <a href="index.source.html" class="el_package">com.salesforce.models</a> &gt; <span class="el_source">Alternative.java</span></div><h1>Alternative.java</h1><pre class="source lang-java linenums">package com.salesforce.models;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a transcription alternative with text and PII entities.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Alternative {
+    private String transcript;
+    private List&lt;Object&gt; items;
+    private List&lt;PIIEntity&gt; entities;
+
+    public String getTranscript() {
+<span class="nc bnc" id="L22" title="All 2 branches missed.">        return transcript != null ? transcript : &quot;&quot;;</span>
+    }
+
+    public List&lt;Object&gt; getItems() {
+<span class="nc bnc" id="L26" title="All 2 branches missed.">        return items != null ? items : Collections.emptyList();</span>
+    }
+
+    public List&lt;PIIEntity&gt; getEntities() {
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        return entities != null ? entities : Collections.emptyList();</span>
+    }
+
+    /**
+     * Checks if this alternative contains any PII entities.
+     * @return true if entities are present
+     */
+    public boolean hasPIIEntities() {
+<span class="nc bnc" id="L38" title="All 2 branches missed.">        return !getEntities().isEmpty();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L43">        return &quot;Alternative{&quot; +</span>
+<span class="nc" id="L44">                &quot;transcript='&quot; + getTranscript() + '\'' +</span>
+<span class="nc" id="L45">                &quot;, entitiesCount=&quot; + getEntities().size() +</span>
+                '}';
+    }
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>
