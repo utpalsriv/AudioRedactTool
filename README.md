@@ -173,7 +173,3 @@ docker build -t audio-redaction-tool .
 docker run -p 8080:8080 audio-redaction-tool
 ```
 
-## License
-
-This project is part of the Salesforce hackathon and is provided as-is for demonstration purposes.
-
